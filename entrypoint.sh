@@ -1,14 +1,14 @@
 #!/bin/bash
 cd /home/container || exit 1
 
-echo "Container starting..."
 echo "User: $(whoami)"
-echo "Working dir: $(pwd)"
+echo "Dir: $(pwd)"
+echo "Haxe: $(haxe --version)"
+echo "Neko: $(neko -version || true)"
 
 if [ -z "${STARTUP}" ]; then
-  echo "No STARTUP variable defined"
+  echo "STARTUP no definido"
   exit 1
 fi
 
-echo "Running startup command: ${STARTUP}"
-exec bash -c "${STARTUP}"
+exec bash -lc "${STARTUP}"
