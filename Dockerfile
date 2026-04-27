@@ -1,62 +1,60 @@
-FROM alpine:3.23
+FROM --platform=$TARGETOS/$TARGETARCH debian:bookworm-slim
 
-ENV PATH=/usr/local/bin:$PATH \
+LABEL author="tu" maintainer="tu@correo.com"
+
+ENV DEBIAN_FRONTEND=noninteractive \
     USER=container \
     HOME=/home/container \
-    HAXE_STD_PATH=/usr/local/share/haxe/std
+    PATH=/usr/local/bin:$PATH \
+    HAXE_STD_PATH=/usr/local/share/haxe/std \
+    NEKO_VERSION=2.4.1 \
+    HAXE_VERSION=4.3.7
 
-RUN apk add --no-cache \
-    bash \
+RUN apt-get update && apt-get install -y \
     ca-certificates \
     curl \
+    wget \
     git \
-    tini \
-    tar \
     unzip \
     zip \
+    tar \
+    xz-utils \
+    bash \
+    tini \
     tzdata \
-    sqlite \
-    sqlite-dev \
-    libuv \
-    libuv-dev \
-    mbedtls \
-    mbedtls-dev \
-    libpng \
-    libpng-dev \
-    libjpeg-turbo \
-    libjpeg-turbo-dev \
-    libvorbis \
-    libvorbis-dev \
-    openal-soft \
-    openal-soft-dev \
-    sdl2 \
-    sdl2-dev \
-    iproute2 \
     dnsutils \
-    iputils \
-    build-base \
+    iproute2 \
+    iputils-ping \
+    sqlite3 \
+    libsqlite3-dev \
+    build-essential \
     cmake \
-    ninja \
-    linux-headers \
-    musl-dev \
-    gc-dev \
-    pcre2-dev \
-    mariadb-dev \
-    apache2-dev \
+    ninja-build \
+    pkg-config \
+    rsync \
+    m4 \
     opam \
     aspcud \
-    m4 \
-    pkgconf \
-    rsync \
-    perl-string-shellquote \
-    perl-ipc-system-simple \
-    ocaml-compiler-libs \
-    ocaml-ocamldoc \
-    && adduser -D -h /home/container container
+    ocaml \
+    ocaml-findlib \
+    libgc-dev \
+    libpcre2-dev \
+    libmbedtls-dev \
+    libmariadb-dev \
+    libapache2-mod-php \
+    zlib1g-dev \
+    libpng-dev \
+    libturbojpeg-dev \
+    libvorbis-dev \
+    libopenal-dev \
+    libsdl2-dev \
+    libglu1-mesa-dev \
+    libuv1-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -m -d /home/container container
 
 WORKDIR /usr/src
 
-# Neko
 RUN wget -O neko.tar.gz "https://github.com/HaxeFoundation/neko/archive/v2-4-1/neko-2.4.1.tar.gz" \
     && echo "702282028190dffa2078b00cca515b8e2ba889186a221df2226d2b6deb3ffaca *neko.tar.gz" | sha256sum -c - \
     && mkdir neko \
@@ -68,26 +66,26 @@ RUN wget -O neko.tar.gz "https://github.com/HaxeFoundation/neko/archive/v2-4-1/n
     && cd /usr/src \
     && rm -rf neko neko.tar.gz
 
-# Haxe
-RUN git clone --recursive --depth 1 --branch 4.3.7 "https://github.com/HaxeFoundation/haxe.git" /usr/src/haxe \
+RUN git clone --recursive --depth 1 --branch ${HAXE_VERSION} "https://github.com/HaxeFoundation/haxe.git" /usr/src/haxe \
     && cd /usr/src/haxe \
-    && mkdir -p $HAXE_STD_PATH \
-    && cp -r std/* $HAXE_STD_PATH \
-    && opam init --compiler=4.14.2 --disable-sandboxing \
-    && eval $(opam env --switch=4.14.2) \
-    && opam pin add luv 0.5.14 --no-action \
-    && opam pin add haxe . --no-action \
-    && opam install haxe --deps-only --no-depexts --yes --ignore-constraints-on=luv \
+    && mkdir -p ${HAXE_STD_PATH} \
+    && cp -r std/* ${HAXE_STD_PATH} \
+    && opam init --disable-sandboxing -y \
+    && eval $(opam env) \
+    && opam switch create 4.14.2 -y \
+    && eval $(opam env) \
+    && opam pin add luv 0.5.14 --no-action -y \
+    && opam pin add haxe . --no-action -y \
+    && opam install haxe --deps-only --yes --ignore-constraints-on=luv \
     && make \
     && cp haxe haxelib /usr/local/bin \
     && mkdir -p /haxelib \
     && haxelib setup /haxelib \
-    && eval $(opam env --revert) \
-    && rm -rf ~/.opam /usr/src/haxe
+    && rm -rf /root/.opam /usr/src/haxe
 
 WORKDIR /home/container
 
-COPY entrypoint.sh /entrypoint.sh
+COPY --chown=container:container ./entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh \
     && chown -R container:container /home/container /haxelib
 
@@ -95,5 +93,5 @@ USER container
 
 STOPSIGNAL SIGINT
 
-ENTRYPOINT ["/sbin/tini", "-g", "--"]
+ENTRYPOINT ["/usr/bin/tini", "-g", "--"]
 CMD ["/entrypoint.sh"]
