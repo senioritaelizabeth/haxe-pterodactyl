@@ -1,6 +1,6 @@
 FROM --platform=$TARGETOS/$TARGETARCH debian:bookworm-slim
 
-LABEL author="tu" maintainer="tu@correo.com"
+LABEL author="MDC" maintainer="me@mdcdev.me"
 
 ENV DEBIAN_FRONTEND=noninteractive \
     USER=container \
