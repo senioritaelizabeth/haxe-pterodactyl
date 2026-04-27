@@ -1,11 +1,10 @@
-FROM --platform=linux/amd64 debian:bookworm-slim
+FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive \
     USER=container \
     HOME=/home/container \
     PATH=/usr/local/bin:$PATH \
-    HAXE_VERSION=4.3.7 \
-    NEKO_VERSION=2.4.1
+    HAXE_VERSION=4.3.7
 
 RUN apt-get update && apt-get install -y \
     ca-certificates \
@@ -18,8 +17,10 @@ RUN apt-get update && apt-get install -y \
     zip \
     tar \
     tzdata \
+    cmake \
+    ninja-build \
+    build-essential \
     libmbedtls-dev \
-    libuv1 \
     libuv1-dev \
     libpng-dev \
     libturbojpeg-dev \
@@ -27,26 +28,21 @@ RUN apt-get update && apt-get install -y \
     libopenal-dev \
     libsdl2-dev \
     libsqlite3-dev \
-    build-essential \
     && rm -rf /var/lib/apt/lists/* \
     && useradd -m -d /home/container container
 
 WORKDIR /usr/src
 
-# Neko from source release tarball
 RUN wget -O neko.tar.gz "https://github.com/HaxeFoundation/neko/archive/v2-4-1/neko-2.4.1.tar.gz" \
     && mkdir -p /usr/src/neko \
     && tar -xC /usr/src/neko --strip-components=1 -f neko.tar.gz \
     && rm neko.tar.gz \
     && cd /usr/src/neko \
-    && mkdir build && cd build \
-    && cmake -DRELOCATABLE=OFF -DNEKO_JIT_DISABLE=ON .. \
-    && cmake --build . -j"$(nproc)" \
-    && cmake --install . \
-    && cd /usr/src \
+    && cmake -S . -B build -GNinja -DRELOCATABLE=OFF -DNEKO_JIT_DISABLE=ON -DRUN_LDCONFIG=OFF \
+    && cmake --build build -j"$(nproc)" \
+    && cmake --install build \
     && rm -rf /usr/src/neko
 
-# Haxe binary release
 RUN mkdir -p /usr/src/haxe \
     && cd /usr/src/haxe \
     && wget -O haxe.tar.gz "https://github.com/HaxeFoundation/haxe/releases/download/${HAXE_VERSION}/haxe-${HAXE_VERSION}-linux64.tar.gz" \
