@@ -87,19 +87,18 @@ RUN set -ex \
 	&& rm -rf ~/.opam \
 	&& rm -rf /usr/src/neko /usr/src/haxe
 
-# HashLink y dependencias necesarias
-RUN apt-get update && apt-get install -y \
+# HashLink y dependencias necesarias en Alpine
+RUN apk add --no-cache \
     libpng-dev \
-    libturbojpeg-dev \
+    libjpeg-turbo-dev \
     libvorbis-dev \
-    libopenal-dev \
-    libsdl2-dev \
-    libmbedtls-dev \
-    libuv1-dev \
+    openal-soft-dev \
+    sdl2-dev \
+    mbedtls-dev \
+    libuv-dev \
     git \
     curl \
-    unzip \
-    && rm -rf /var/lib/apt/lists/*
+    unzip
 
 # Setup haxelib
 RUN mkdir -p /haxelib && haxelib setup /haxelib
